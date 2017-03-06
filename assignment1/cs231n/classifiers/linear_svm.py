@@ -42,14 +42,16 @@ def svm_loss_naive(W, X, y, reg):
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
   loss /= num_train
-
+  dW   /= num_train
+  
   # Add regularization to the loss.
-  loss += 0.5 * reg * np.sum(W * W)
-  dW += reg * W
-  dW[-1,:] = 0 # the bias shouldn't be changed
-  # print 'pre-normalization 2 norm dW = %f' % (np.linalg.norm(dW))
-  # dW = dW / np.linalg.norm(dW)
-  # print 'post-normalization 2 norm dW = %f' % (np.linalg.norm(dW))
+  # loss += 0.5 * reg * np.sum(W * W)
+  loss += 0.5 * reg * ( np.sum(W * W) - np.sum(W[-1,:] * W[-1,:]) ) ## bias shouldn't go into the regularization.
+                                                                      ## the l2 regularization just prefers the small and separat weight along all dim
+                                                                      ## which shouldn't affect the bias.
+  dW_reg = reg * W   ## weighting and bias should be both updated.
+  dW_reg[-1, 0] = 0  ## but the update of the bias should only come from the data loss.
+  dW += dW_reg;
   #############################################################################
   # TODO:                                                                     #
   # Compute the gradient of the loss function and store it dW.                #
@@ -82,11 +84,11 @@ def svm_loss_vectorized(W, X, y, reg):
   # result in loss.                                                           #
   #############################################################################
   # pass
-  scores_matrix = X.dot(W)
-  correct_class_score_vector = scores_matrix[range(num_train), y]
-  margin_matrix = np.clip(scores_matrix.T - correct_class_score_vector + 1, 0, float("inf"))  # 1 added to much per training image
-  # margin_matrix = margin_matrix.T
-  # margin_matrix[range(num_train), y] = 0
+  score_matrix = X.dot(W)
+  correct_class_score_vector = score_matrix[range(num_train), y]
+  margin_matrix = np.clip(score_matrix.T - correct_class_score_vector + 1, 0, float("inf"))  # 1 added to much per training image
+  margin_matrix = margin_matrix.T
+  
   loss = np.sum(margin_matrix) - num_train
   
   # Right now the loss is a sum over all training examples, but we want it
@@ -94,7 +96,9 @@ def svm_loss_vectorized(W, X, y, reg):
   loss /= num_train
 
   # Add regularization to the loss.
-  loss += 0.5 * reg * np.sum(W * W)
+  loss += 0.5 * reg * ( np.sum(W * W) - np.sum(W[-1,:] * W[-1,:]) ) ## bias shouldn't go into the regularization.
+                                                                      ## the l2 regularization just prefers the small and separat weight along all dim
+                                                                      ## which shouldn't affect the bias.
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -109,7 +113,17 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+  # pass
+  mask = np.zeros(margin_matrix.shape)
+  mask[margin_matrix > 0] = 1;
+  row_sum = np.sum(mask, axis=1) ## note: should eliminate the score=1 counted for the correct class
+  mask[range(num_train), y] -= row_sum
+  dW = mask.T.dot(X) / num_train ## gradient of the data loss part
+  dW = dW.T
+  
+  dW_reg = reg * W   ## weighting and bias should be both updated.
+  dW_reg[-1, 0] = 0  ## but the update of the bias should only come from the data loss.
+  dW += dW_reg;
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
