@@ -86,13 +86,16 @@ def softmax_loss_vectorized(W, X, y, reg):
   # data loss
   score_mtx = X.dot(W)
   score_mtx_exp = np.exp(score_mtx)
+  # print score_mtx_exp[1, 1:10]
   sum_score_exp_mtx_per_row = np.sum(score_mtx_exp, axis=1)
+ #  print 'sum_score_exp_mtx_per_row[0] = %f' % (sum_score_exp_mtx_per_row[0])
   score_mtx_exp_correct_class = score_mtx_exp[xrange(num_train), y]
-  loss_per_image = -np.log(score_mtx_exp_correct_class / sum_score_exp_mtx_per_row)  # softmax function
+  factor = 1 / (sum_score_exp_mtx_per_row + 1e-8)
+  loss_per_image = -np.log(score_mtx_exp_correct_class * factor + 1e-8)  # softmax function
+ #  print 'loss_per_image[0] = %f' % (loss_per_image[0])
   loss = np.sum(loss_per_image)
   
   # regularization
-  factor = 1 / sum_score_exp_mtx_per_row
   mask = score_mtx_exp
   mask[xrange(num_train), y] = - ( sum_score_exp_mtx_per_row - score_mtx_exp_correct_class )
   mask = (mask.T * factor).T

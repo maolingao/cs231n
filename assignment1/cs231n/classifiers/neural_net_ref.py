@@ -67,26 +67,26 @@ class TwoLayerNet(object):
     W2, b2 = self.params['W2'], self.params['b2']
     N, D = X.shape
 
-    # Compute the forward pass
+    # compute the forward pass
     scores = None
     #############################################################################
     # TODO: Perform the forward pass, computing the class scores for the input. #
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    # pass
-    h_activation = np.maximum( X.dot(W1) + b1, 0 ) # ReLu
-    scores       = h_activation.dot(W2) + b2
-    #############################################################################
-    #                              END OF YOUR CODE                             #
-    #############################################################################
-    
+      
+    # Rectified linear unit
+    hidden_activation = np.maximum( X.dot(W1) + b1, 0)
+
+    # Softmax unit
+    scores = hidden_activation.dot(W2) + b2
+
     # If the targets are not given then jump out, we're done
     if y is None:
-      return scores
+        return scores
 
-    # Compute the loss
-    loss = None
+    # compute the loss
+    loss = 0
     #############################################################################
     # TODO: Finish the forward pass, and compute the loss. This should include  #
     # both the data loss and L2 regularization for W1 and W2. Store the result  #
@@ -94,83 +94,56 @@ class TwoLayerNet(object):
     # classifier loss. So that your results match ours, multiply the            #
     # regularization loss by 0.5                                                #
     #############################################################################
-    # pass
+
     # Calculating softmax value
     # step 1, center activation value
     # step 2, exponentially interpolate activation value
     # step 3, calculate softmax value for each class at each training sample 
 
-    # subtract max class score, this operation will improve the numerial stability
-    scores = scores - np.expand_dims( np.amax(scores, axis=1 ), axis=1 )
-    
-    score_mtx_exp = np.exp(scores)
-    score_mtx_exp_correct_class = score_mtx_exp[range(N), y]
-    
-    sum_score_exp_mtx_per_row = np.sum( score_mtx_exp, axis=1 )
-    factor = 1 / (sum_score_exp_mtx_per_row + 1e-12)                       # 1e-12 for numerical stability
-    
-    # softmax function
-    loss_per_image = -np.log(score_mtx_exp_correct_class * factor + 1e-12) # 1e-12 for numerical stability
-    
-    loss = np.sum(loss_per_image) / N
+    # subtract max class score
+    scores = scores - np.expand_dims( np.amax( scores, axis=1 ), axis=1)
 
-    # L2 regularization loss
-    loss += 0.5 * reg * ( np.sum(W1 ** 2) + np.sum(W2 ** 2) ) 
-                                                                      ## bias shouldn't go into the regularization.
-                                                                      ## the l2 regularization just prefers the small and separat weight along all dim
-                                                                      ## which shouldn't affect the bias.
-                                                                      
-    #############################################################################
-    #                              END OF YOUR CODE                             #
-    #############################################################################
+    exp_scores = np.exp(scores)
 
-    # Backward pass: compute gradients
+    probs = exp_scores / np.sum( exp_scores, axis=1 , keepdims=True)
+
+    # Softmax data loss 
+    loss = np.sum(- scores[range(len(y)), y] + np.log( np.sum( exp_scores, axis=1) )) / N
+
+    # L2 regularization
+    loss += 0.5 * reg * ( np.sum(W1 ** 2) + np.sum(W2 ** 2) )
+
+    # compute the gradients
     grads = {}
     #############################################################################
     # TODO: Compute the backward pass, computing the derivatives of the weights #
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    
-    # Back-propagate average of losses of every training image
-    dLi = 1.0 / N
-    
-    # Regularization gradient
-    dW1 = reg * W1
-    dW2 = reg * W2
-    
+
+    # Calculate the error delta
+    delta_scores = probs
+    delta_scores[range(N), y] -= 1
+    delta_scores /= N
+
     # Back-propagate Softmax gradient
-     # 1.) dLidscores = \frac{d Li}{d scores}
-    probs = score_mtx_exp / ( np.sum( score_mtx_exp, axis=1 , keepdims=True) + 1e-12 )
-    probs[range(N), y] -= 1
-    dLidscores = probs
-    
-     # 2.) dscores  = dL1 * dLidscores
-    dscores = dLi * dLidscores
-    
-    dW2 += (h_activation.T).dot(dscores)
-    db2 = np.sum( dscores, axis=0 )
-    
-    # Back-propagate hidden layer
-    dh_activation = dscores.dot(W2.T)
-    
+    grads['W2'] = hidden_activation.T.dot(delta_scores)
+    grads['b2'] = np.sum( delta_scores, axis=0 )
+
     # Back-propagate LeRU gradient
-     # - For those unit have activation less or equal zero, 
-     # - there should be no gradient descent
-    dh = dh_activation
-    dh[h_activation <= 0] = 0
-    
-    dW1 += (X.T).dot(dh)
-    db1 = np.sum( dh, axis=0 )
-    
-    grads['W2'] = dW2
-    grads['b2'] = db2
-    grads['W1'] = dW1
-    grads['b1'] = db1
-    
-    #############################################################################
-    #                              END OF YOUR CODE                             #
-    #############################################################################
+    delta_hidden = delta_scores.dot(W2.T)
+
+    # For those unit have activation less or equal zero, 
+    # there should be no gradient descent
+    delta_hidden[hidden_activation <= 0] = 0
+
+    grads['W1'] = X.T.dot(delta_hidden)
+    grads['b1'] = np.sum(delta_hidden, axis=0 )
+
+    # Regularization gradient
+    grads['W2'] += reg * W2
+    grads['W1'] += reg * W1
+
 
     return loss, grads
 
