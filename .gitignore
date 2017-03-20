@@ -90,3 +90,7 @@ ENV/
 
 # zip file
 *.zip
+
+# txt file
+*.txt
+

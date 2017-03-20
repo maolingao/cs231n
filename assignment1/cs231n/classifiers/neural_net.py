@@ -197,7 +197,6 @@ class TwoLayerNet(object):
     """
     N = X.shape[0]
     iterations_per_epoch = max(N / batch_size, 1)
-
     # Use SGD to optimize the parameters in self.model
     loss_history = []
     train_acc_history = []
@@ -211,7 +210,10 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      pass
+      # pass
+      batch_idx = np.random.choice(N, batch_size, replace=True)
+      X_batch = X[batch_idx, :]
+      y_batch = y[batch_idx]
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -226,7 +228,12 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      pass
+      # pass
+      self.params['W1'] = self.params['W1'] - learning_rate * grads['W1']
+      self.params['b1'] = self.params['b1'] - learning_rate * grads['b1']
+      self.params['W2'] = self.params['W2'] - learning_rate * grads['W2']
+      self.params['b2'] = self.params['b2'] - learning_rate * grads['b2']
+
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -271,7 +278,11 @@ class TwoLayerNet(object):
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
-    pass
+    # pass
+    h_activation = np.maximum( X.dot( self.params['W1'] ) +  self.params['b1'], 0 )
+    scores       = h_activation.dot(  self.params['W2'] ) +  self.params['b2']
+    y_pred       = np.argmax( scores, axis=1 )
+    
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
