@@ -94,3 +94,6 @@ ENV/
 # txt file
 *.txt
 
+# temperary file
+*~
+
