@@ -151,7 +151,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
   - cache: A tuple of values needed in the backward pass
   """
   mode = bn_param['mode']
-  eps = bn_param.get('eps', 1e-6)
+  eps = bn_param.get('eps', 1e-8)
   momentum = bn_param.get('momentum', 0.9)
 
   N, D = x.shape
