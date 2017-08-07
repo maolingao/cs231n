@@ -199,7 +199,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     #############################################################################
     # pass
     # normaliza using running_mean and running_var
-    xhat = (x - running_mean) / (np.sqrt(running_var) + eps)
+    xhat = (x - running_mean) / np.sqrt(running_var + eps)
     # scale and schift the normalized data
     out = gamma * xhat + beta
     #############################################################################
